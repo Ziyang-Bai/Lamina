@@ -3,6 +3,9 @@ project(Lamina)
 
 set(CMAKE_CXX_STANDARD 20)
 set(LIBUV_LIBRARY uv_a)
+
+# 设置可执行文件输出路径
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 # 设置libuv子模块路径
 set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/external/libuv)
 
