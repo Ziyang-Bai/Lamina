@@ -26,11 +26,11 @@
 
 # IDE and editor files
 /.vs/
-/.vscode/
 **/.vscode/
 *.swp
 *.swo
 *~
+CMakeUserPresets.json
 
 # OS specific files
 .DS_Store
