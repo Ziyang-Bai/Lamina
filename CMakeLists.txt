@@ -82,6 +82,8 @@ add_library(lamina_core SHARED
         interpreter/module_loader.cpp
         interpreter/module_loader.hpp
         interpreter/module_api.hpp
+        interpreter/symbolic.hpp
+        interpreter/symbolic.cpp
         extensions/standard/math.cpp
         extensions/standard/stdio.cpp
         extensions/standard/random.cpp
@@ -152,7 +154,9 @@ target_include_directories(lamina_core PUBLIC
 # Create main executable
 add_executable(Lamina interpreter/main.cpp interpreter/repl_input.cpp
                # Directly include module_loader.cpp to resolve MinGW linking issues
-               interpreter/module_loader.cpp)
+               interpreter/module_loader.cpp
+               # Include symbolic.cpp for symbolic expression support
+               interpreter/symbolic.cpp)
 
 # Link to lamina_core
 target_link_libraries(Lamina PRIVATE lamina_core)

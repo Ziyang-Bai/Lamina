@@ -630,10 +630,9 @@ Value Interpreter::eval(const ASTNode* node) {
                 int vi = std::get<int>(v.data);
                 return Value(-vi);
             } else {
-                // For BigInt, we need to implement negation
+                // For BigInt, negate directly
                 ::BigInt big_val = std::get<::BigInt>(v.data);
-                // For now, convert to int if possible
-                return Value(-big_val.to_int());
+                return Value(big_val.negate());
             }
         }
 
@@ -746,7 +745,6 @@ Value Interpreter::eval(const ASTNode* node) {
             }
 
             recursion_depth++;
-            push_scope();
             push_frame(actual_callee, "<script>", 0);// Add to call stack
 
             // Check parameter count
@@ -757,19 +755,27 @@ Value Interpreter::eval(const ASTNode* node) {
                                            true);
             }
 
-            // Pass arguments
+            // Calculate arguments
+            std::vector<Value> arg_values(func->params.size());
             for (size_t j = 0; j < func->params.size(); ++j) {
                 if (j < call->args.size()) {
                     if (call->args[j]) {
-                        set_variable(func->params[j], eval(call->args[j].get()));
+                        arg_values[j] = eval(call->args[j].get());
                     } else {
                         Interpreter::print_error("Null argument " + std::to_string(j + 1) + " in call to function '" + actual_callee + "'", true);
-                        set_variable(func->params[j], Value("<null arg>"));
+                        arg_values[j] = Value("<null arg>");
                     }
                 } else {
                     Interpreter::print_warning("Missing argument '" + func->params[j] + "' in call to function '" + actual_callee + "'", true);
-                    set_variable(func->params[j], Value("<undefined>"));
+                    arg_values[j] = Value("<undefined>");
                 }
+            }
+
+            push_scope();// Create scope here
+
+            // Pass arguments
+            for (size_t j = 0; j < func->params.size(); ++j) {
+                set_variable(func->params[j], arg_values[j]);
             }
 
             // Execute function body, capture return

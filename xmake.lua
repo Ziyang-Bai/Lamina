@@ -7,19 +7,11 @@ target("lamina_core")
     set_kind("shared")
     set_languages("c++20")
     add_files(
-        "interpreter/interpreter.cpp",
-        "interpreter/lexer.cpp",
-        "interpreter/parser.cpp",
-        "interpreter/module_loader.cpp",
-        "extensions/standard/math.cpp",
-        "extensions/standard/stdio.cpp",
-        "extensions/standard/random.cpp",
-        "extensions/standard/times.cpp",
-        "extensions/standard/array.cpp",
-        "extensions/standard/sockets.cpp",
-        "extensions/standard/string.cpp"
+        "interpreter/**.cpp|main.cpp|repl_input.cpp|module.cpp",
+        "extensions/standard/**.cpp"
     )
     add_includedirs("interpreter")
+    add_headerfiles("interpreter/*.hpp")
     add_packages("libuv")
     add_packages("exprtk")
     add_defines(
@@ -37,7 +29,6 @@ target("lamina")
     add_deps("lamina_core")
     add_files(
         "interpreter/main.cpp",
-        "interpreter/repl_input.cpp",
-        "interpreter/module_loader.cpp"
+        "interpreter/repl_input.cpp"
     )
     add_includedirs("interpreter")

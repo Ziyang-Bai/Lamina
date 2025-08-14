@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <climits>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -360,5 +361,111 @@ public:
 
     bool operator!=(const BigInt& other) const {
         return !(*this == other);
+    }
+
+    // Mathematical functions
+    
+    // Absolute value - returns a copy with positive sign
+    BigInt abs() const {
+        BigInt result = *this;
+        result.negative = false;
+        return result;
+    }
+    
+    // Negate - returns a copy with opposite sign
+    BigInt negate() const {
+        BigInt result = *this;
+        if (!result.is_zero()) {
+            result.negative = !result.negative;
+        }
+        return result;
+    }
+    
+    // Square root using Newton's method for integer square root
+    // Returns the floor of the square root
+    BigInt sqrt() const {
+        if (negative) {
+            throw std::runtime_error("Square root of negative BigInt is undefined");
+        }
+        
+        if (is_zero()) {
+            return BigInt(0);
+        }
+        
+        if (digits.size() == 1 && digits[0] == 1) {
+            return BigInt(1);
+        }
+        
+        // Newton's method for integer square root
+        // Start with an initial guess
+        BigInt x = *this;
+        BigInt y = (*this + BigInt(1)) / BigInt(2);
+        
+        while (y < x) {
+            x = y;
+            y = (x + (*this / x)) / BigInt(2);
+        }
+        
+        return x;
+    }
+    
+    // Check if this BigInt is a perfect square
+    bool is_perfect_square() const {
+        if (negative) {
+            return false;
+        }
+        
+        BigInt root = sqrt();
+        return (root * root) == *this;
+    }
+    
+    // Power function for non-negative integer exponents (alias for existing power method)
+    BigInt pow(const BigInt& exponent) const {
+        return power(exponent);
+    }
+    
+    // Greatest Common Divisor using Euclidean algorithm
+    static BigInt gcd(const BigInt& a, const BigInt& b) {
+        BigInt abs_a = a.abs();
+        BigInt abs_b = b.abs();
+        
+        if (abs_b.is_zero()) {
+            return abs_a;
+        }
+        
+        return gcd(abs_b, abs_a % abs_b);
+    }
+    
+    // Least Common Multiple
+    static BigInt lcm(const BigInt& a, const BigInt& b) {
+        if (a.is_zero() || b.is_zero()) {
+            return BigInt(0);
+        }
+        
+        BigInt gcd_val = gcd(a, b);
+        return (a.abs() / gcd_val) * b.abs();
+    }
+    
+    // Convert to double (with potential precision loss warning)
+    double to_double() const {
+        if (is_zero()) {
+            return 0.0;
+        }
+        
+        double result = 0.0;
+        double multiplier = 1.0;
+        
+        for (size_t i = 0; i < digits.size(); ++i) {
+            result += digits[i] * multiplier;
+            multiplier *= 10.0;
+            
+            // Check for overflow - use a large but finite value
+            if (multiplier > 1e308) {
+                // Precision loss will occur
+                break;
+            }
+        }
+        
+        return negative ? -result : result;
     }
 };

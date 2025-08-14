@@ -20,3 +20,8 @@ cd build
 cmake .. -G "MinGW Makefiles"
 mingw32-make
 ```
+
+使用 xmake 构建:
+```shell
+xmake
+```

@@ -2,6 +2,7 @@
 #include "bigint.hpp"
 #include "irrational.hpp"
 #include "rational.hpp"
+#include "symbolic.hpp"
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -29,9 +30,10 @@ public:
                       Matrix,
                       BigInt,
                       Rational,
-                      Irrational };
+                      Irrational,
+                      Symbolic };
     Type type;
-    std::variant<std::nullptr_t, bool, int, double, std::string, std::vector<Value>, std::vector<std::vector<Value>>, ::BigInt, ::Rational, ::Irrational> data;
+    std::variant<std::nullptr_t, bool, int, double, std::string, std::vector<Value>, std::vector<std::vector<Value>>, ::BigInt, ::Rational, ::Irrational, std::shared_ptr<SymbolicExpr>> data;
 
     virtual ~Value() = default;
 
@@ -48,6 +50,7 @@ public:
     Value(const ::BigInt& bi) : type(Type::BigInt), data(bi) {}
     Value(const ::Rational& r) : type(Type::Rational), data(r) {}
     Value(const ::Irrational& ir) : type(Type::Irrational), data(ir) {}
+    Value(std::shared_ptr<SymbolicExpr> sym) : type(Type::Symbolic), data(sym) {}
     Value(const std::vector<Value>& arr) {
         // Check if this is a matrix (array of arrays)
         bool is_matrix = !arr.empty() && arr[0].is_array();
@@ -86,14 +89,20 @@ public:
     bool is_bigint() const { return type == Type::BigInt; }
     bool is_rational() const { return type == Type::Rational; }
     bool is_irrational() const { return type == Type::Irrational; }
-    bool is_numeric() const { return type == Type::Int || type == Type::Float || type == Type::BigInt || type == Type::Rational || type == Type::Irrational; }
+    bool is_symbolic() const { return type == Type::Symbolic; }
+    bool is_numeric() const { return type == Type::Int || type == Type::Float || type == Type::BigInt || type == Type::Rational || type == Type::Irrational || type == Type::Symbolic; }
     // Get numeric value as double
     double as_number() const {
         if (type == Type::Int) return static_cast<double>(std::get<int>(data));
         if (type == Type::Float) return std::get<double>(data);
         if (type == Type::BigInt) {
             // For BigInt, try to convert to int first, then to double
-            int int_val = std::get<::BigInt>(data).to_int();
+            const auto& bigint_val = std::get<::BigInt>(data);
+            int int_val = bigint_val.to_int();
+            if (int_val == INT_MAX || int_val == INT_MIN) {
+                // BigInt was too large for int, use double conversion
+                return bigint_val.to_double();
+            }
             return static_cast<double>(int_val);
         }
         if (type == Type::Rational) {
@@ -101,6 +110,9 @@ public:
         }
         if (type == Type::Irrational) {
             return std::get<::Irrational>(data).to_double();
+        }
+        if (type == Type::Symbolic) {
+            return std::get<std::shared_ptr<SymbolicExpr>>(data)->to_double();
         }
         return 0.0;
     }
@@ -197,6 +209,9 @@ public:
             }
             case Type::Irrational: {
                 return std::get<::Irrational>(data).to_string();
+            }
+            case Type::Symbolic: {
+                return std::get<std::shared_ptr<SymbolicExpr>>(data)->to_string();
             }
         }
         return "<unknown>";

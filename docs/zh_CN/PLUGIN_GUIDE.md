@@ -178,9 +178,32 @@ set_target_properties(${MODULE_NAME} PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 ```
+
+### 3. xmake.lua 配置
+
+```lua
+add_rules("mode.debug", "mode.release")
+
+package("lamina_core")
+    set_urls("https://github.com/Lamina-dev/Lamina.git")
+    on_install(function (package)
+        import("package.tools.xmake").install(package)
+    end)
+package_end()
+
+add_requires("lamina_core main")
+
+target("minimal")
+    set_kind("shared")
+    set_languages("c++20")
+    add_files("ultra_minimal.cpp")
+    add_packages("lamina_core")
+```
+
 ## 构建和使用模块
 
 ### 构建模块
+#### 1. 使用 cmake 构建
 ```bash
 # 配置构建
 cmake -B build -DCMAKE_BUILD_TYPE=Debug .
@@ -189,6 +212,10 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug .
 cmake --build build --config Debug --parallel
 
 # 模块将输出到：build/Debug/minimal.dll (Windows) 或 build/Debug/libminimal.so (Linux)
+```
+#### 2. 使用 xmake 构建
+```bash
+xmake
 ```
 
 ### 在 Lamina 脚本中使用模块
