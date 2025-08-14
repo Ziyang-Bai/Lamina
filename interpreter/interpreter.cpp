@@ -326,10 +326,27 @@ Value Interpreter::eval(const ASTNode* node) {
                     return Value(result);
                 }
 
-                double result = l.as_number() + r.as_number();// Return int if both operands are int and result is whole
+                // If both operands are int, check for potential overflow before performing the operation.
+                // This is a more robust approach than detecting overflow after it happens.
                 if (l.is_int() && r.is_int()) {
-                    return Value(static_cast<int>(result));
+                    int left_val = std::get<int>(l.data);
+                    int right_val = std::get<int>(r.data);
+
+                    // Check for potential addition overflow
+                    if ((right_val > 0 && left_val > INT_MAX - right_val) ||  // Positive overflow
+                        (right_val < 0 && left_val < INT_MIN - right_val)) { // Negative overflow
+                        // Overflow is possible, promote to BigInt for safe arithmetic
+                        ::BigInt big_left(left_val);
+                        ::BigInt big_right(right_val);
+                        return Value(big_left + big_right);
+                    } else {
+                        // No overflow possible, perform standard int arithmetic
+                        return Value(left_val + right_val);
+                    }
                 }
+                // For other numeric types (float, or mixed int/float), use double arithmetic.
+                // This path is taken if not both operands are int.
+                double result = l.as_number() + r.as_number();
                 return Value(result);
             } else {
                 error_and_exit("Cannot add " + l.to_string() + " and " + r.to_string());
@@ -379,8 +396,56 @@ Value Interpreter::eval(const ASTNode* node) {
                         return Value(result);
                     }
 
+                    // If both operands are int, check for potential overflow before performing the operation.
+                    if (l.is_int() && r.is_int()) {
+                        int left_val = std::get<int>(l.data);
+                        int right_val = std::get<int>(r.data);
+
+                        // Check for potential multiplication overflow
+                        if (left_val != 0 && right_val != 0) {
+                            if (left_val > 0) {
+                                if (right_val > 0) {
+                                    if (left_val > INT_MAX / right_val) { // Positive overflow
+                                        ::BigInt big_left(left_val);
+                                        ::BigInt big_right(right_val);
+                                        return Value(big_left * big_right);
+                                    }
+                                } else { // right_val < 0
+                                    if (right_val < INT_MIN / left_val) { // Negative overflow (pos * neg)
+                                        ::BigInt big_left(left_val);
+                                        ::BigInt big_right(right_val);
+                                        return Value(big_left * big_right);
+                                    }
+                                }
+                            } else { // left_val < 0
+                                if (right_val > 0) {
+                                    if (left_val < INT_MIN / right_val) { // Negative overflow (neg * pos)
+                                        ::BigInt big_left(left_val);
+                                        ::BigInt big_right(right_val);
+                                        return Value(big_left * big_right);
+                                    }
+                                } else { // right_val < 0
+                                    // Overflow if result is positive and too large
+                                    // INT_MAX / right_val is negative because right_val is negative.
+                                    // We need to check if left_val (negative) is less than this negative quotient.
+                                    // Example: left_val = -2, right_val = -3. INT_MAX / -3 is a large negative.
+                                    // -2 is not less than a large negative, so no overflow.
+                                    // Example: left_val = INT_MIN, right_val = -1. INT_MAX / -1 is -INT_MAX.
+                                    // INT_MIN < -INT_MAX is true, so overflow.
+                                    if (left_val < INT_MAX / right_val) {
+                                         ::BigInt big_left(left_val);
+                                         ::BigInt big_right(right_val);
+                                         return Value(big_left * big_right);
+                                    }
+                                }
+                            }
+                        }
+                        // No overflow possible, perform standard int arithmetic
+                        return Value(left_val * right_val);
+                    }
+                    // For other numeric types (float, or mixed int/float), use double arithmetic.
                     double result = l.as_number() * r.as_number();
-                    return (l.is_int() && r.is_int()) ? Value(static_cast<int>(result)) : Value(result);
+                    return Value(result);
                 }
                 // Error case
                 error_and_exit("Cannot multiply " + l.to_string() + " and " + r.to_string());
