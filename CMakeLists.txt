@@ -323,7 +323,7 @@ endif()
 install(TARGETS Lamina lamina_core
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} #Utilized the CMAKE_INSTALL_LIBDIR variable to achieve platform-adaptive installation paths.
 )
 
 # Install header files (for plugin development)
