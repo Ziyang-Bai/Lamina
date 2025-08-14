@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(MSVC)
         # Set MSVC compile options - add exception handling, calling convention and parallel PDB write support
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MD /Gz /FS")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MD /Gz /FS /utf-8")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MD /Gz /FS")
         
         # Set to multi-threaded dynamic link library
@@ -35,31 +35,35 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Set libuv related variables
-set(LIBUV_LIBRARY uv_a)
-set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/external/libuv)
+if(WIN32)
+    if(MSVC OR (MINGW AND NOT MSYSTEM))
+        # Set libuv related variables
+        set(LIBUV_LIBRARY uv_a)
+        set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/external/libuv)
 
+        # Check if libuv submodule exists
+        if(NOT EXISTS ${LIBUV_ROOT}/CMakeLists.txt)
+            message(FATAL_ERROR "LibUV submodule not found. Please run 'git submodule update --init --recursive'")
+        endif()
 
-# Check if libuv submodule exists
-if(NOT EXISTS ${LIBUV_ROOT}/CMakeLists.txt)
-    message(FATAL_ERROR "LibUV submodule not found. Please run 'git submodule update --init --recursive'")
+        # Add libuv subdirectory
+        add_subdirectory(${LIBUV_ROOT})
+        # Enable PIC only for libuv
+        set_target_properties(uv uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+        # Set libuv libraries and include directories
+        set(LIBUV_LIBRARIES uv_a)
+        set(LIBUV_INCLUDE_DIRS ${LIBUV_ROOT}/include)
+
+        include_directories(${LIBUV_INCLUDE_DIRS})
+    endif()
 endif()
 
-# Add libuv subdirectory
-add_subdirectory(${LIBUV_ROOT})
-# Enable PIC only for libuv
-set_target_properties(uv uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Set libuv libraries and include directories
-set(LIBUV_LIBRARIES uv_a)
-set(LIBUV_INCLUDE_DIRS ${LIBUV_ROOT}/include)
 include_directories(
-        ${LIBUV_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
         ${CMAKE_CURRENT_SOURCE_DIR}/external/exprtk  # 新增ExprTK头文件路径
 )
 
-include_directories(interpreter)
 # Create lamina_core shared library
 add_library(lamina_core SHARED
         interpreter/ast.hpp
@@ -159,12 +163,17 @@ if(UNIX)
 endif()
 
 # Automatically copy dependent dynamic libraries
-add_custom_command(TARGET Lamina POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:uv>
-        $<TARGET_FILE_DIR:Lamina>
-    COMMENT "Copying libuv.dll to output directory"
-)
+if(WIN32)
+    if(MSVC OR (MINGW AND NOT MSYSTEM))
+        add_custom_command(TARGET Lamina POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:uv>
+                $<TARGET_FILE_DIR:Lamina>
+            COMMENT "Copying libuv.dll to output directory"
+        )
+    endif()
+endif()
+
 
 # Copy lamina_core.dll on Windows
 if(WIN32)
