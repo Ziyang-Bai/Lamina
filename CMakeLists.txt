@@ -9,16 +9,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(WIN32)
     if(MSVC)
         # Set MSVC compile options - add exception handling, calling convention and parallel PDB write support
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MD /Gz /FS /utf-8")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MD /Gz /FS")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MD /Gz /FS")
-        
+
         # Set to multi-threaded dynamic link library
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-        
+
         # Add additional definitions to ensure consistent calling convention
         add_definitions(-D_ENABLE_EXTENDED_ALIGNED_STORAGE)
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-        
+
         message(STATUS "Using MSVC compiler (${CMAKE_CXX_COMPILER_VERSION})")
     else()
         # Settings for MinGW or other compilers
@@ -35,72 +35,76 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Set libuv related variables
-set(LIBUV_LIBRARY uv_a)
-set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/external/libuv)
+if(WIN32)
+    if(MSVC OR (MINGW AND (NOT MSYS)))
+        # Set libuv related variables
+        set(LIBUV_LIBRARY uv_a)
+        set(LIBUV_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/external/libuv)
 
+        # Check if libuv submodule exists
+        if(NOT EXISTS ${LIBUV_ROOT}/CMakeLists.txt)
+            message(FATAL_ERROR "LibUV submodule not found. Please run 'git submodule update --init --recursive'")
+        endif()
 
-# Check if libuv submodule exists
-if(NOT EXISTS ${LIBUV_ROOT}/CMakeLists.txt)
-    message(FATAL_ERROR "LibUV submodule not found. Please run 'git submodule update --init --recursive'")
+        # Add libuv subdirectory
+        add_subdirectory(${LIBUV_ROOT})
+        # Enable PIC only for libuv
+        set_target_properties(uv uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+        # Set libuv libraries and include directories
+        set(LIBUV_LIBRARIES uv_a)
+        set(LIBUV_INCLUDE_DIRS ${LIBUV_ROOT}/include)
+
+        include_directories(${LIBUV_INCLUDE_DIRS})
+    endif()
 endif()
 
-# Add libuv subdirectory
-add_subdirectory(${LIBUV_ROOT})
-# Enable PIC only for libuv
-set_target_properties(uv uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Set libuv libraries and include directories
-set(LIBUV_LIBRARIES uv_a)
-set(LIBUV_INCLUDE_DIRS ${LIBUV_ROOT}/include)
 include_directories(
-        ${LIBUV_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/exprtk  # 新增ExprTK头文件路径
+    ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/exprtk # 新增ExprTK头文件路径
 )
 
-include_directories(interpreter)
 # Create lamina_core shared library
 add_library(lamina_core SHARED
-        interpreter/ast.hpp
-        interpreter/bigint.hpp
-        interpreter/interpreter.cpp
-        interpreter/interpreter.hpp
-        interpreter/irrational.hpp
-        interpreter/lexer.cpp
-        interpreter/lexer.hpp
-        interpreter/parser.cpp
-        interpreter/parser.hpp
-        interpreter/rational.hpp
-        interpreter/trackback.hpp
-        interpreter/value.hpp
-        interpreter/lamina.hpp
-        interpreter/module_loader.cpp
-        interpreter/module_loader.hpp
-        interpreter/module_api.hpp
-        extensions/standard/math.cpp
-        extensions/standard/stdio.cpp
-        extensions/standard/random.cpp
-        extensions/standard/random.hpp
-        extensions/standard/times.cpp
-        extensions/standard/times.hpp
-        extensions/standard/array.cpp
-        extensions/standard/sockets.hpp
-        extensions/standard/sockets.cpp
-      #  extensions/standard/latex.hpp
-        extensions/standard/string.hpp
-        extensions/standard/string.cpp
-        extensions/standard/cas.hpp
-        extensions/standard/cas.cpp
+    interpreter/ast.hpp
+    interpreter/bigint.hpp
+    interpreter/interpreter.cpp
+    interpreter/interpreter.hpp
+    interpreter/irrational.hpp
+    interpreter/lexer.cpp
+    interpreter/lexer.hpp
+    interpreter/parser.cpp
+    interpreter/parser.hpp
+    interpreter/rational.hpp
+    interpreter/trackback.hpp
+    interpreter/value.hpp
+    interpreter/lamina.hpp
+    interpreter/module_loader.cpp
+    interpreter/module_loader.hpp
+    interpreter/module_api.hpp
+    extensions/standard/math.cpp
+    extensions/standard/stdio.cpp
+    extensions/standard/random.cpp
+    extensions/standard/random.hpp
+    extensions/standard/times.cpp
+    extensions/standard/times.hpp
+    extensions/standard/array.cpp
+    extensions/standard/sockets.hpp
+    extensions/standard/sockets.cpp
+    #  extensions/standard/latex.hpp
+    extensions/standard/string.hpp
+    extensions/standard/string.cpp
+    extensions/standard/cas.hpp
+    extensions/standard/cas.cpp
 )
 
 # Set lamina_core properties
-set_target_properties(lamina_core PROPERTIES 
+set_target_properties(lamina_core PROPERTIES
     WINDOWS_EXPORT_ALL_SYMBOLS ON
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
     ENABLE_EXPORTS ON
-    PREFIX ""  # Remove lib prefix on all platforms
+    PREFIX "" # Remove lib prefix on all platforms
 )
 
 # Define export macros
@@ -120,19 +124,19 @@ if(MSVC)
     target_compile_options(lamina_core PRIVATE
         /bigobj # 消除编译错误
         /W4
-        /FS  # Add /FS flag to resolve PDB file conflicts during parallel compilation
-        /wd4251  # 'class' needs to have dll-interface to be used by clients of class
-        /wd4267  # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        /wd4996  # This function or variable may be unsafe
-        /wd4702  # unreachable code
-        /wd4100  # unreferenced formal parameter
-        /wd4189  # local variable is initialized but not referenced
-        /wd4459  # declaration hides global declaration
-        /wd4244  # conversion from 'type1' to 'type2', possible loss of data
-        /wd4005  # macro redefinition
+        /FS # Add /FS flag to resolve PDB file conflicts during parallel compilation
+        /wd4251 # 'class' needs to have dll-interface to be used by clients of class
+        /wd4267 # 'var' : conversion from 'size_t' to 'type', possible loss of data
+        /wd4996 # This function or variable may be unsafe
+        /wd4702 # unreachable code
+        /wd4100 # unreferenced formal parameter
+        /wd4189 # local variable is initialized but not referenced
+        /wd4459 # declaration hides global declaration
+        /wd4244 # conversion from 'type1' to 'type2', possible loss of data
+        /wd4005 # macro redefinition
     )
 else()
-    target_compile_options(lamina_core PRIVATE 
+    target_compile_options(lamina_core PRIVATE
         -Wall -Wextra -Wpedantic
         -Wno-unused-parameter
         -Wno-unused-variable
@@ -141,14 +145,14 @@ endif()
 
 # Set lamina_core public header file directory
 target_include_directories(lamina_core PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/exprtk  # 确保公共包含
+    ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/exprtk # 确保公共包含
 )
 
 # Create main executable
 add_executable(Lamina interpreter/main.cpp interpreter/repl_input.cpp
-               # Directly include module_loader.cpp to resolve MinGW linking issues
-               interpreter/module_loader.cpp)
+    # Directly include module_loader.cpp to resolve MinGW linking issues
+    interpreter/module_loader.cpp)
 
 # Link to lamina_core
 target_link_libraries(Lamina PRIVATE lamina_core)
@@ -159,19 +163,24 @@ if(UNIX)
 endif()
 
 # Automatically copy dependent dynamic libraries
-add_custom_command(TARGET Lamina POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:uv>
-        $<TARGET_FILE_DIR:Lamina>
-    COMMENT "Copying libuv.dll to output directory"
-)
+if(WIN32)
+    if(MSVC OR (MINGW AND NOT MSYS))
+        add_custom_command(TARGET Lamina POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:uv>
+            $<TARGET_FILE_DIR:Lamina>
+            COMMENT "Copying libuv.dll to output directory"
+        )
+    endif()
+endif()
+
 
 # Copy lamina_core.dll on Windows
 if(WIN32)
     add_custom_command(TARGET Lamina POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:lamina_core>
-            $<TARGET_FILE_DIR:Lamina>
+        $<TARGET_FILE:lamina_core>
+        $<TARGET_FILE_DIR:Lamina>
         COMMENT "Copying lamina_core.dll to output directory"
     )
 endif()
@@ -183,25 +192,25 @@ message(STATUS "Building extensions for ${CMAKE_SYSTEM_NAME}")
 function(build_extension EXTENSION_PATH)
     get_filename_component(EXTENSION_NAME ${EXTENSION_PATH} NAME)
     get_filename_component(EXTENSION_DIR ${EXTENSION_PATH} DIRECTORY)
-    
+
     # 检查是否有对应的 .cpp 文件
     set(EXTENSION_SOURCE "${EXTENSION_PATH}/${EXTENSION_NAME}.cpp")
     if(EXISTS ${EXTENSION_SOURCE})
         message(STATUS "Building extension: ${EXTENSION_NAME}")
-        
+
         # 创建共享库
         add_library(${EXTENSION_NAME} SHARED ${EXTENSION_SOURCE})
-        
+
         # 链接到 lamina_core 和 libuv
         target_link_libraries(${EXTENSION_NAME} PRIVATE lamina_core ${LIBUV_LIBRARY})
-        
+
         # 设置包含目录
-        target_include_directories(${EXTENSION_NAME} PRIVATE 
+        target_include_directories(${EXTENSION_NAME} PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/interpreter
             ${CMAKE_CURRENT_SOURCE_DIR}/extensions
             ${EXTENSION_PATH}
         )
-        
+
         # 设置输出目录和属性
         set_target_properties(${EXTENSION_NAME} PROPERTIES
             LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Debug
@@ -211,47 +220,47 @@ function(build_extension EXTENSION_PATH)
             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release
             ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release
             POSITION_INDEPENDENT_CODE ON
-            PREFIX ""  # 去掉 lib 前缀
+            PREFIX "" # 去掉 lib 前缀
         )
-        
+
         # 设置扩展的编译选项（抑制常见警告）
         if(MSVC)
-            target_compile_options(${EXTENSION_NAME} PRIVATE 
+            target_compile_options(${EXTENSION_NAME} PRIVATE
                 /W4
-                /wd4251  # 'class' needs to have dll-interface
-                /wd4267  # conversion from 'size_t' to 'type', possible loss of data
-                /wd4996  # This function or variable may be unsafe
-                /wd4702  # unreachable code
-                /wd4100  # unreferenced formal parameter
-                /wd4189  # local variable is initialized but not referenced
-                /wd4459  # declaration hides global declaration
-                /wd4244  # conversion possible loss of data
-                /wd4005  # macro redefinition
+                /wd4251 # 'class' needs to have dll-interface
+                /wd4267 # conversion from 'size_t' to 'type', possible loss of data
+                /wd4996 # This function or variable may be unsafe
+                /wd4702 # unreachable code
+                /wd4100 # unreferenced formal parameter
+                /wd4189 # local variable is initialized but not referenced
+                /wd4459 # declaration hides global declaration
+                /wd4244 # conversion possible loss of data
+                /wd4005 # macro redefinition
             )
         else()
-            target_compile_options(${EXTENSION_NAME} PRIVATE 
+            target_compile_options(${EXTENSION_NAME} PRIVATE
                 -Wall -Wextra -Wpedantic
                 -Wno-unused-parameter
                 -Wno-unused-variable
             )
         endif()
-        
+
         # Windows 下自动复制 DLL，支持 MSVC 和 MinGW
         if(WIN32)
             if(MSVC)
                 # MSVC 构建，支持 Debug 配置的 PDB 文件
                 add_custom_command(TARGET ${EXTENSION_NAME} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        $<TARGET_FILE:${EXTENSION_NAME}>
-                        $<TARGET_FILE_DIR:${EXTENSION_NAME}>
+                    $<TARGET_FILE:${EXTENSION_NAME}>
+                    $<TARGET_FILE_DIR:${EXTENSION_NAME}>
                     COMMENT "Copying ${EXTENSION_NAME}.dll to output directory"
                 )
                 # 在 Debug 配置下复制 PDB 文件
                 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
                     add_custom_command(TARGET ${EXTENSION_NAME} POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                            $<TARGET_PDB_FILE:${EXTENSION_NAME}>
-                            $<TARGET_FILE_DIR:${EXTENSION_NAME}>
+                        $<TARGET_PDB_FILE:${EXTENSION_NAME}>
+                        $<TARGET_FILE_DIR:${EXTENSION_NAME}>
                         COMMENT "Copying ${EXTENSION_NAME}.pdb to output directory"
                     )
                 endif()
@@ -259,8 +268,8 @@ function(build_extension EXTENSION_PATH)
                 # MinGW 构建，只复制 DLL
                 add_custom_command(TARGET ${EXTENSION_NAME} POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        $<TARGET_FILE:${EXTENSION_NAME}>
-                        $<TARGET_FILE_DIR:${EXTENSION_NAME}>
+                    $<TARGET_FILE:${EXTENSION_NAME}>
+                    $<TARGET_FILE_DIR:${EXTENSION_NAME}>
                     COMMENT "Copying ${EXTENSION_NAME}.dll to output directory"
                 )
             endif()
