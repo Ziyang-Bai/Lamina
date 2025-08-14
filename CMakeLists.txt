@@ -36,6 +36,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 if(WIN32)
+    # If use MSVC or Pure MinGW(not MSYS)
     if(MSVC OR (MINGW AND (NOT MSYS)))
         # Set libuv related variables
         set(LIBUV_LIBRARY uv_a)
