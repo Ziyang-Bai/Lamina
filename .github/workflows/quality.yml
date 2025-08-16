@@ -695,5 +695,5 @@ jobs:
         if: steps.changed_files.outputs.HAS_CHANGES == 'true' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v4
         with:
-          comment-id: ${{ github.event.pull_request.number }}
+          issue-number: ${{ github.event.pull_request.number }}
           body-path: review_summary.md
