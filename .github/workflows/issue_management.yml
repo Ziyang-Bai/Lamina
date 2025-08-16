@@ -17,7 +17,7 @@ jobs:
       - name: Welcome new issue
         uses: peter-evans/create-or-update-comment@v4
         with:
-          comment-id: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.issue.number }}
           body: |
             👋 感谢您提交issue！
 
@@ -68,7 +68,7 @@ jobs:
       - name: Add help resources
         uses: peter-evans/create-or-update-comment@v4
         with:
-          comment-id: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.issue.number }}
           body: |
             🆘 需要帮助？
 
