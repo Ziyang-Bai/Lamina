@@ -35,6 +35,7 @@ std::vector<Token> Lexer::tokenize(const std::string& src) {
     // Debug: std::cerr << "Starting tokenization of " << src.length() << " characters" << std::endl;
     while (i < src.size()) {
         if (src[i] == '\n') {
+            tokens.emplace_back(TokenType::Semicolon, "\n", line, col);
             ++line;
             col = 1;
             ++i;
@@ -264,6 +265,7 @@ std::vector<Token> Lexer::tokenize(const std::string& src) {
             ++col;
         }
     }
+    tokens.emplace_back(TokenType::Semicolon, "", line, col);
     tokens.emplace_back(TokenType::EndOfFile, "", line, col);
     return tokens;
 }
