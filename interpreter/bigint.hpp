@@ -17,7 +17,7 @@ public:
     // 构造函数
     BigInt() : negative(false) { digits.push_back(0); }
 
-    explicit BigInt(int n) : negative(n < 0) {
+    BigInt(int n) : negative(n < 0) {
         if (n == 0) {
             digits.push_back(0);
             return;

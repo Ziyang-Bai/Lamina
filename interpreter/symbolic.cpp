@@ -109,11 +109,11 @@ std::shared_ptr<SymbolicExpr> SymbolicExpr::simplify_sqrt() const {
         const auto& exp = simplified_operand->operands[1];
         if (exp->is_number()) {
             auto exp_val = exp->get_number();
-            int n = 0;
+            BigInt n = 0;
             if (std::holds_alternative<int>(exp_val)) n = std::get<int>(exp_val);
             else if (std::holds_alternative<::Rational>(exp_val)) {
                 ::Rational r = std::get<::Rational>(exp_val);
-                if (r.is_integer()) n = static_cast<int>(r.get_numerator());
+                if (r.is_integer()) n = static_cast<BigInt>(r.get_numerator());
             }
             if (n == 2) {
                 // sqrt(x^2) = x
