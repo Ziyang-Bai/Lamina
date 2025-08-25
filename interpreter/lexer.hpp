@@ -23,6 +23,7 @@ enum class TokenType {
     Include, // 新增
     Break,   // 新增
     Continue,// 新增
+    Struct,  // 新增
     Define,  // define
     Bigint,  // bigint
     True,    // true

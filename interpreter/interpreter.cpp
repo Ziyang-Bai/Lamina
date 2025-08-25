@@ -1,9 +1,11 @@
 #include "interpreter.hpp"
+#include "../extensions/standard/lstruct.hpp"
 #include "bigint.hpp"
 #include "lamina.hpp"
 #include "lexer.hpp"
 #include "module_loader.hpp"
 #include "parser.hpp"
+
 #include <cmath>
 #include <cstdlib>// For std::exit
 #include <cstring>// For strcmp
@@ -143,6 +145,13 @@ void Interpreter::execute(const std::unique_ptr<Statement>& node) {
         }
         Value val = eval(a->expr.get());
         set_variable(a->name, val);
+    }else if (auto* a = dynamic_cast<StructDeclStmt*>(node.get())) {
+        std::vector<std::pair<std::string, Value>> struct_init_val{};
+        for (const auto& [n,e]: a->init_vec) {
+            auto val = eval(e.get());
+            struct_init_val.emplace_back(n, val);
+        }
+        set_variable(a->name,new_lstruct(struct_init_val));
     } else if (auto* ifs = dynamic_cast<IfStmt*>(node.get())) {
         if (!ifs->condition) {
             error_and_exit("Null condition in if statement");

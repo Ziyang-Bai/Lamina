@@ -20,6 +20,7 @@ void registerKeywords() {
     keywords["continue"] = TokenType::Continue;
     keywords["define"] = TokenType::Define;
     keywords["bigint"] = TokenType::Bigint;
+    keywords["struct"] = TokenType::Struct;
     keywords["true"] = TokenType::True;
     keywords["false"] = TokenType::False;
     keywords["null"] = TokenType::Null;

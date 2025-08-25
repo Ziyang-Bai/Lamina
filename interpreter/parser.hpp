@@ -30,4 +30,5 @@ public:
     // 解析单条语句
     static std::unique_ptr<Statement> parse_statement(const std::vector<Token>& tokens, size_t& i);
     static std::unique_ptr<Statement> parse_while(const std::vector<Token>& tokens, size_t& i);
+    static std::unique_ptr<StructDeclStmt> parse_struct(const std::vector<Token>& tokens, size_t& i);
 };

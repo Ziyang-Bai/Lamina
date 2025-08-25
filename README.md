@@ -275,6 +275,25 @@ print(v1 + v2);                 // 向量加法：[5, 7, 9]
 print(dot(v1, v2));             // 点积：32
 print(2 * v1);                  // 标量乘法：[2, 4, 6]
 ```
+### 结构体定义
+
+```lamina
+struct Student{
+    name = "Tom";
+    age  =  10;
+}
+
+struct otherInfo{
+    country = "US";
+}
+```
+**注意**: 当前Lamina结构体不支持引用
+
+| 函数                       | 描述   | 示例                                   |
+|--------------------------|------|--------------------------------------|
+| `getattr(src,name)`      | 获取属性 | `getattr("Student","name") -> "Tom"` |
+| `setattr(src,name,expr)` | 设置属性 | `setattr("Student","name")`          |
+| `update(src,other)`      | 添加数据 | `update("Student","otherInfo)"`      |
 
 ### 比较运算符
 

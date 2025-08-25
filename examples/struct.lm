@@ -1,0 +1,10 @@
+struct Student{name = "Tom";age = 18;}
+struct OtherInfo{country = "US";}
+
+print(Student);
+print(getattr(Student,"name"));
+setattr(Student,"name","Lucy");
+print(Student);
+
+update(Student,OtherInfo);
+print(Student);

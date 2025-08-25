@@ -350,6 +350,92 @@ std::unique_ptr<BlockStmt> Parser::parse_block(const std::vector<Token>& tokens,
     return parse_block(tokens, i, false);
 }
 
+// Parse struct decl
+std::unique_ptr<StructDeclStmt> Parser::parse_struct(const std::vector<Token>& tokens, size_t& i) {
+    if (!(i < tokens.size() && tokens[i].type == TokenType::Struct)) {
+        return nullptr;
+    }
+    int struct_line = tokens[i].line;
+    int struct_col = tokens[i].column;
+    size_t struct_start_index = i;// Record struct statement start position
+
+    DEBUG_OUT << "Debug - Starting while loop parsing, line " << struct_line << " col " << struct_col << std::endl;
+
+    ++i;// Skip 'struct'
+    if (i >= tokens.size()) {
+        std::cerr << "\033[31mError: struct statement ended unexpectedly, missing the name\033[0m" << std::endl;
+        print_context(tokens, struct_start_index);
+        return nullptr;
+    }
+
+    const auto& struct_name = tokens[i].text;
+    std::vector<std::pair<std::string, std::unique_ptr<Expression>>> init_vec;
+    ++i;
+    if (i >= tokens.size()) {
+        std::cerr << "\033[31mError: struct statement ended unexpectedly, missing the body\033[0m" << std::endl;
+        print_context(tokens, struct_start_index);
+        return nullptr;
+    }
+
+    if (tokens[i].type == TokenType::LBrace) {
+        ++i;// Consume opening brace
+    } else {
+        std::cerr << "\033[31mError: struct statement missing opening brace '{'\033[0m" << std::endl;
+        print_context(tokens, i);
+    }
+
+    // Parse struct body
+    DEBUG_OUT << "Debug - Parsing struct body" << std::endl;
+
+    while (i < tokens.size() &&
+               tokens[i].type != TokenType::RBrace) {
+        if (!  (i < tokens.size() && tokens[i].type == TokenType::Identifier)  ){
+            std::cerr << "\033[31mError: struct statement missing the sub name instead of '" << tokens[i].text << "'\033[0m" << std::endl;
+            print_context(tokens, i);
+            return nullptr;
+        };
+        std::string sub_name = tokens[i].text;
+        ++i;
+
+        if (!  (i < tokens.size() && tokens[i].type == TokenType::Assign)  ){
+            std::cerr << "\033[31mError: struct member missing '=' after identifier '" << sub_name << "' (line " << tokens[i].line << ")\033[0m" << std::endl;
+            print_context(tokens, i);
+            return nullptr;
+        }
+        ++i;
+
+        std::unique_ptr<Expression> sub_expr = parse_expression(tokens, i);
+        while (i < tokens.size() && tokens[i].type != TokenType::Semicolon) ++i;
+        if (i >= tokens.size() || tokens[i].type != TokenType::Semicolon) {
+            std::cerr << "\033[31mError: struct sub item need ends with ';' (line " << tokens[i-1].line << ")\033[0m" << std::endl;
+            print_context(tokens, i);
+            return nullptr;
+        }
+        ++i;
+
+        if (!sub_expr) {
+            std::cerr << "\033[31mError: struct sub item need init val" << std::endl;
+            print_context(tokens, i);
+            return nullptr;
+        }
+
+        init_vec.emplace_back(sub_name, std::move(sub_expr));
+
+    }
+
+    if (i >= tokens.size() || tokens[i].type != TokenType::RBrace) {
+        std::cerr << "\033[31mError: struct body missing closing brace '}' (line " << tokens[i-1].line << ")\033[0m" << std::endl;
+        print_context(tokens, i);
+        return nullptr;
+    }
+    ++i;
+
+    DEBUG_OUT << "Debug - while loop parsing completed, defined at line " << struct_line
+              << ", ended at line " << (i < tokens.size() ? tokens[i - 1].line : -1) << std::endl;
+
+    return std::make_unique<StructDeclStmt>(struct_name, std::move(init_vec));
+}
+
 std::unique_ptr<Statement> Parser::parse_while(const std::vector<Token>& tokens, size_t& i) {
     if (!(i < tokens.size() && tokens[i].type == TokenType::While)) {
         return nullptr;
@@ -603,6 +689,10 @@ std::unique_ptr<Statement> Parser::parse_statement(const std::vector<Token>& tok
     // Handle while statements
     if (tokens[i].type == TokenType::While) {
         return parse_while(tokens, i);
+    }
+
+    if (tokens[i].type == TokenType::Struct) {
+        return parse_struct(tokens, i);
     }
 
     if (tokens[i].type == TokenType::Define && i + 2 < tokens.size() &&

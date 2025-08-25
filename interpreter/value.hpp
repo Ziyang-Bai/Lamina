@@ -3,6 +3,7 @@
 #include "irrational.hpp"
 #include "rational.hpp"
 #include "symbolic.hpp"
+
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -19,6 +20,9 @@
 #define LAMINA_API
 #endif
 
+class lStruct;
+LAMINA_API std::string lStruct_to_string(const std::shared_ptr<lStruct>& lstruct);
+
 class LAMINA_API Value {
 public:
     enum class Type { Null,
@@ -31,9 +35,19 @@ public:
                       BigInt,
                       Rational,
                       Irrational,
+                      lStruct,
                       Symbolic };
     Type type;
-    std::variant<std::nullptr_t, bool, int, double, std::string, std::vector<Value>, std::vector<std::vector<Value>>, ::BigInt, ::Rational, ::Irrational, std::shared_ptr<SymbolicExpr>> data;
+    std::variant<
+        std::nullptr_t,
+        bool, int, double, std::string,
+        std::vector<Value>,
+        std::vector<std::vector<Value>>,
+        std::vector<std::pair<std::string, Value>>,
+        ::BigInt, ::Rational,::Irrational,
+        std::shared_ptr<SymbolicExpr>,
+        std::shared_ptr<lStruct>
+    > data;
 
     virtual ~Value() = default;
 
@@ -50,7 +64,8 @@ public:
     Value(const ::BigInt& bi) : type(Type::BigInt), data(bi) {}
     Value(const ::Rational& r) : type(Type::Rational), data(r) {}
     Value(const ::Irrational& ir) : type(Type::Irrational), data(ir) {}
-    Value(std::shared_ptr<SymbolicExpr> sym) : type(Type::Symbolic), data(sym) {}
+    Value(const std::shared_ptr<lStruct>& lstruct): type(Type::lStruct), data(lstruct) {}
+    Value(const std::shared_ptr<SymbolicExpr>& sym) : type(Type::Symbolic), data(sym) {}
     Value(const std::vector<Value>& arr) {
         // Check if this is a matrix (array of arrays)
         bool is_matrix = !arr.empty() && arr[0].is_array();
@@ -89,6 +104,7 @@ public:
     bool is_bigint() const { return type == Type::BigInt; }
     bool is_rational() const { return type == Type::Rational; }
     bool is_irrational() const { return type == Type::Irrational; }
+    bool is_lstruct() const { return type == Type::lStruct; }
     bool is_symbolic() const { return type == Type::Symbolic; }
     bool is_numeric() const { return type == Type::Int || type == Type::Float || type == Type::BigInt || type == Type::Rational || type == Type::Irrational || type == Type::Symbolic; }
     // Get numeric value as double
@@ -212,6 +228,9 @@ public:
             }
             case Type::Symbolic: {
                 return std::get<std::shared_ptr<SymbolicExpr>>(data)->to_string();
+            }
+            case Type::lStruct: {
+                return lStruct_to_string(std::get<std::shared_ptr<lStruct>>(data));
             }
         }
         return "<unknown>";

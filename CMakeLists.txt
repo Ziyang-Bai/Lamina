@@ -94,6 +94,8 @@ add_library(lamina_core SHARED
         extensions/standard/string.cpp
         extensions/standard/cas.hpp
         extensions/standard/cas.cpp
+        extensions/standard/lstruct.hpp
+        extensions/standard/lstruct.cpp
 )
 
 # Set lamina_core properties

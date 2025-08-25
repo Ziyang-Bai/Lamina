@@ -157,6 +157,17 @@ struct ExprStmt : public Statement {
     explicit ExprStmt(std::unique_ptr<Expression> e) : expr(std::move(e)) {}
 };
 
+// Struct声明
+struct StructDeclStmt: public Statement {
+    std::string name;
+    std::vector<std::pair<std::string, std::unique_ptr<Expression>>> init_vec;
+    explicit StructDeclStmt(
+        const std::string& n,
+        std::vector<std::pair<std::string, std::unique_ptr<Expression>>> v
+        )
+    : name(n), init_vec(std::move(v)) {}
+};
+
 // Define语句（用于设置常量，如递归深度）
 struct DefineStmt : public Statement {
     std::string name;
